@@ -1,18 +1,18 @@
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
+// 確保 port 是數字類型
+const dbPort = parseInt(process.env.DB_PORT) || 3306;
+
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME || 'taxi_db',
-  port: process.env.DB_PORT || 3306,
+  port: dbPort,
   waitForConnections: true,
-  connectionLimit: 20,
+  connectionLimit: 10,
   queueLimit: 0,
-  connectTimeout: 10000,
-  acquireTimeout: 10000,
-  timeout: 10000,
   ssl: {
     rejectUnauthorized: false
   }
@@ -30,7 +30,7 @@ pool.getConnection()
       host: process.env.DB_HOST,
       user: process.env.DB_USER,
       database: process.env.DB_NAME,
-      port: process.env.DB_PORT
+      port: dbPort
     });
   });
 
