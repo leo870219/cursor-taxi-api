@@ -1,10 +1,19 @@
-require('dotenv').config();
-
 const fs = require('fs').promises;
 const path = require('path');
 const mysql = require('mysql2/promise');
 
-async function initDatabase() {
+export default async function handler(req, res) {
+  // 檢查是否是 POST 請求
+  if (req.method !== 'POST') {
+    return res.status(405).json({ message: '只允許 POST 請求' });
+  }
+
+  // 檢查初始化密鑰（為了安全）
+  const initKey = req.headers['x-init-key'];
+  if (initKey !== process.env.INIT_KEY) {
+    return res.status(401).json({ message: '未授權的訪問' });
+  }
+
   let connection;
   try {
     console.log('開始初始化資料庫...');
@@ -25,34 +34,27 @@ async function initDatabase() {
       ssl: {
         rejectUnauthorized: false
       },
-      multipleStatements: true  // 允許執行多條 SQL 語句
+      multipleStatements: true
     });
 
-    // 讀取並執行 SQL 文件
-    const sqlPath = path.join(__dirname, 'init.sql');
+    // 讀取 SQL 文件
+    const sqlPath = path.join(process.cwd(), 'src', 'database', 'init.sql');
     const sql = await fs.readFile(sqlPath, 'utf8');
     
     console.log('執行 SQL 腳本...');
     await connection.query(sql);
     console.log('資料庫初始化成功！');
 
+    res.status(200).json({ message: '資料庫初始化成功' });
   } catch (error) {
     console.error('資料庫初始化失敗：', error);
-    throw error;
+    res.status(500).json({ 
+      message: '資料庫初始化失敗', 
+      error: error.message 
+    });
   } finally {
     if (connection) {
       await connection.end();
     }
   }
-}
-
-// 執行初始化
-initDatabase()
-  .then(() => {
-    console.log('資料庫初始化完成');
-    process.exit(0);
-  })
-  .catch(error => {
-    console.error('資料庫初始化失敗:', error);
-    process.exit(1);
-  });
+} 
