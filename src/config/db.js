@@ -8,10 +8,13 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME || 'taxi_db',
   port: process.env.DB_PORT || 3306,
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit: 20,
   queueLimit: 0,
+  connectTimeout: 10000,
+  acquireTimeout: 10000,
+  timeout: 10000,
   ssl: {
-    rejectUnauthorized: false // 為了支援 Railway 的 SSL 連接
+    rejectUnauthorized: false
   }
 });
 

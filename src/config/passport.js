@@ -42,42 +42,30 @@ passport.use(new GoogleStrategy({
   });
   
   try {
-    // 檢查用戶是否已存在
-    const [users] = await db.query(
-      'SELECT * FROM users WHERE google_id = ?',
-      [profile.id]
-    );
-    console.log('Existing user:', users[0] || 'Not found');
-
-    if (users.length > 0) {
-      return done(null, users[0]);
-    }
-
-    // 創建新用戶
-    console.log('Creating new user...');
+    // 使用單個查詢來檢查和插入用戶
     const [result] = await db.query(
-      `INSERT INTO users (
-        email, 
-        name, 
-        google_id, 
-        avatar_url, 
-        role
-      ) VALUES (?, ?, ?, ?, ?)`,
+      `INSERT INTO users (email, name, google_id, avatar_url, role)
+       SELECT ?, ?, ?, ?, ?
+       WHERE NOT EXISTS (
+         SELECT 1 FROM users WHERE google_id = ?
+       )`,
       [
         profile.emails[0].value,
         profile.displayName,
         profile.id,
         profile.photos[0]?.value,
-        'customer'  // 預設為客戶角色
+        'customer',
+        profile.id
       ]
     );
 
-    const [newUser] = await db.query(
-      'SELECT * FROM users WHERE id = ?',
-      [result.insertId]
+    // 獲取用戶資訊
+    const [users] = await db.query(
+      'SELECT * FROM users WHERE google_id = ?',
+      [profile.id]
     );
 
-    return done(null, newUser[0]);
+    return done(null, users[0]);
   } catch (error) {
     console.error('Google strategy error:', error);
     done(error);
